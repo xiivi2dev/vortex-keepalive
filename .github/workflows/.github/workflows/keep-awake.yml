@@ -1,0 +1,29 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+    - cron: '45 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keep-awake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake vortex-bot on Render
+        run: curl -sS -o /dev/null -w 'HTTP %{http_code}\n' --max-time 120 https://vortex-bot-pjny.onrender.com/api/system/ping || true
+
+      - name: Weekly keepalive commit
+        if: github.event.schedule == '45 4 * * 0'
+        uses: actions/checkout@v4
+
+      - name: Push empty commit
+        if: github.event.schedule == '45 4 * * 0'
+        run: |
+          git config user.name keepalive
+          git config user.email keepalive@users.noreply.github.com
+          git commit --allow-empty -m "keepalive $(date -u +%F)"
+          git push
